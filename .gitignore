@@ -1,0 +1,7 @@
+results/
+k6-scripts/
+logs/
+temp/
+node_modules/
+.DS_Store
+notes.txt

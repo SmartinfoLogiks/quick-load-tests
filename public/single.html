@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Load Testing Tool</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px 0;
+    }
+    .main-container {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      padding: 30px;
+      margin: 20px auto;
+      max-width: 1200px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 3px solid #667eea;
+    }
+    .header h1 {
+      color: #667eea;
+      font-weight: bold;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    .result-card {
+      background: #f8f9fa;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+    }
+    .metric-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #667eea;
+    }
+    .spinner-container {
+      text-align: center;
+      padding: 40px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 0.9rem;
+      margin: 2px;
+      cursor: pointer;
+    }
+    .status-2xx { background: #d4edda; color: #155724; }
+    .status-4xx { background: #fff3cd; color: #856404; }
+    .status-5xx { background: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="main-container">
+      <div class="header">
+        <h1><i class="bi bi-speedometer2"></i> Load Testing Tool</h1>
+        <p class="text-muted">Professional load testing for websites and REST APIs</p>
+      </div>
+
+      <!-- Test Configuration Form -->
+      <div id="configSection">
+        <h3 class="mb-3"><i class="bi bi-gear"></i> Test Configuration
+          
+          <div class="btn-group" role="group" aria-label="Controls"  style='float:right;margin-top:5px;'>
+            <button id='btn-resetTestForm' type="button" class="btn btn-outline-primary btn-sm">
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#curlSection">
+            <i class="bi bi-code-slash"></i> cURL
+            </button>
+          </div>
+        </h3>
+
+        <!-- cURL Import Section -->
+        <div class="mb-4">
+          <div class="collapse mt-3" id="curlSection">
+            <div class="card card-body" style="padding: 5px;">
+              <label class="form-label">Paste cURL Command</label>
+              <textarea class="form-control" id="curlInput" rows="4" placeholder="curl -X POST https://api.example.com/endpoint -H 'Content-Type: application/json' -d '{\"key\":\"value\"}'"></textarea>
+              <button type="button" class="btn btn-primary btn-sm mt-2" onclick="parseCurl()">
+                <i class="bi bi-arrow-down-circle"></i> Parse & Fill Form
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <form id="testForm">
+          <div class="row mb-3">
+            <div class="col-md-8">
+              <label class="form-label">Target URL *</label>
+              <input type="url" class="form-control" id="url" placeholder="https://api.example.com/endpoint" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">HTTP Method *</label>
+              <select class="form-select" id="method" required>
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+                <option value="PATCH">PATCH</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Virtual Users (VUs) *</label>
+              <input type="number" class="form-control" id="vus" value="10" min="1" max="1000" required>
+              <small class="text-muted">Number of concurrent users</small>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Duration *</label>
+              <input type="text" class="form-control" id="duration" value="30s" placeholder="30s, 5m, 1h" required>
+              <small class="text-muted">Test duration (e.g., 30s, 5m, 1h)</small>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Headers (JSON)</label>
+            <textarea class="form-control" id="headers" rows="3" placeholder='{"Authorization": "Bearer token", "Content-Type": "application/json"}'></textarea>
+          </div>
+
+          <div class="mb-3" id="bodySection" style="display: none;">
+            <label class="form-label">Request Body (JSON)</label>
+            <textarea class="form-control" id="body" rows="4" placeholder='{"key": "value"}'></textarea>
+          </div>
+
+          <div class="mb-3">
+            <h5>Performance Thresholds (Optional)</h5>
+            <div class="row">
+              <div class="col-md-6">
+                <label class="form-label">P95 Response Time (Target SLA Metric) (ms)</label>
+                <input type="number" class="form-control" id="p95" value="500">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Max Error Rate</label>
+                <input type="number" class="form-control" id="errorRate" value="0.1" step="0.01" min="0" max="1">
+              </div>
+            </div>
+          </div>
+
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary btn-lg">
+              <i class="bi bi-play-fill"></i> Start Load Test
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Loading State -->
+      <div id="loadingSection" style="display: none;">
+        <div class="spinner-container">
+          <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <h4 class="mt-3">Running Load Test...</h4>
+          <p class="text-muted">This may take a few moments</p>
+        </div>
+      </div>
+
+      <!-- Results Section -->
+      <div id="resultsSection" style="display: none;">
+        <hr class="my-4">
+        <h3 class="mb-3"><i class="bi bi-bar-chart"></i> Test Results</h3>
+        
+        <div class="row mb-4">
+          <div class="col-md-3">
+            <div class="result-card text-center">
+              <div class="metric-value" id="totalRequests">-</div>
+              <div class="text-muted">Total Requests</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="result-card text-center">
+              <div class="metric-value" id="avgDuration">-</div>
+              <div class="text-muted">Avg Duration (ms)</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="result-card text-center">
+              <div class="metric-value" id="p95Duration">-</div>
+              <div class="text-muted">P95 Duration (ms)</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="result-card text-center">
+              <div class="metric-value" id="p99Duration">-</div>
+              <div class="text-muted">P99 Duration (ms)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <div class="result-card">
+              <h5><i class="bi bi-clock"></i> Response Times</h5>
+              <table class="table table-sm mb-0">
+                <tr><td>Minimum</td><td class="text-end"><strong id="minDuration">-</strong> ms</td></tr>
+                <tr><td>Maximum</td><td class="text-end"><strong id="maxDuration">-</strong> ms</td></tr>
+                <tr><td>Median (P50)</td><td class="text-end"><strong id="p50Duration">-</strong> ms</td></tr>
+              </table>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="result-card">
+              <h5><i class="bi bi-info-circle"></i> Test Info</h5>
+              <table class="table table-sm mb-0">
+                <tr><td>Test ID</td><td class="text-end"><strong id="testId">-</strong></td></tr>
+                <tr><td>Timestamp</td><td class="text-end"><strong id="timestamp">-</strong></td></tr>
+                <tr><td>VUs</td><td class="text-end"><strong id="resultVus">-</strong></td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="result-card mb-4">
+          <h5><i class="bi bi-check-circle"></i> HTTP Status Codes</h5>
+          <div id="statusCodes"></div>
+        </div>
+
+        <div class="d-grid gap-2">
+          <button class="btn btn-success btn-lg" id="downloadBtn">
+            <i class="bi bi-download"></i> Download HTML Report
+          </button>
+          <button class="btn btn-outline-primary" id="newTestBtn">
+            <i class="bi bi-arrow-clockwise"></i> Run Another Test
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+    var httpStatusCodes = {};
+
+    loadErrorCodes();
+    
+    document.getElementById("btn-resetTestForm").addEventListener("click", resetTestForm);
+
+    // Show/hide body section based on method
+    document.getElementById('method').addEventListener('change', (e) => {
+      const bodySection = document.getElementById('bodySection');
+      bodySection.style.display = ['POST', 'PUT', 'PATCH'].includes(e.target.value) ? 'block' : 'none';
+    });
+
+    // Handle form submission
+    document.getElementById('testForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const config = {
+        url: document.getElementById('url').value,
+        method: document.getElementById('method').value,
+        vus: parseInt(document.getElementById('vus').value),
+        duration: document.getElementById('duration').value,
+        headers: {},
+        body: null,
+        thresholds: {
+          p95: parseInt(document.getElementById('p95').value),
+          errorRate: parseFloat(document.getElementById('errorRate').value)
+        }
+      };
+
+      // Parse headers
+      const headersText = document.getElementById('headers').value.trim();
+      if (headersText) {
+        try {
+          config.headers = JSON.parse(headersText);
+        } catch (err) {
+          alert('Invalid JSON in headers field');
+          return;
+        }
+      }
+
+      // Parse body
+      const bodyText = document.getElementById('body').value.trim();
+      if (bodyText && ['POST', 'PUT', 'PATCH'].includes(config.method)) {
+        try {
+          config.body = JSON.parse(bodyText);
+        } catch (err) {
+          alert('Invalid JSON in body field');
+          return;
+        }
+      }
+
+      // Show loading state
+      document.getElementById('configSection').style.display = 'none';
+      document.getElementById('loadingSection').style.display = 'block';
+      document.getElementById('resultsSection').style.display = 'none';
+
+      try {
+        // Start test
+        const response = await fetch(`${API_URL}/run-test`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(config)
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          // Poll for results
+          pollResults(data.testId);
+        } else {
+          throw new Error(data.error || 'Failed to start test');
+        }
+      } catch (error) {
+        alert('Error: ' + error.message);
+        document.getElementById('configSection').style.display = 'block';
+        document.getElementById('loadingSection').style.display = 'none';
+      }
+    });
+
+    // Poll for test results
+    async function pollResults(testId, attempts = 0) {
+      if (attempts > 60) {
+        alert('Test timed out. Please check the server.');
+        document.getElementById('configSection').style.display = 'block';
+        document.getElementById('loadingSection').style.display = 'none';
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/result/${testId}`);
+        const data = await response.json();
+
+        if (response.ok && data.totalRequests) {
+          displayResults(data);
+        } else {
+          // Retry after 2 seconds
+          setTimeout(() => pollResults(testId, attempts + 1), 2000);
+        }
+      } catch (error) {
+        setTimeout(() => pollResults(testId, attempts + 1), 2000);
+      }
+    }
+
+    // Display results
+    function displayResults(data) {
+      document.getElementById('loadingSection').style.display = 'none';
+      document.getElementById('resultsSection').style.display = 'block';
+
+      document.getElementById('totalRequests').textContent = data.totalRequests;
+      document.getElementById('avgDuration').textContent = data.avgDuration;
+      document.getElementById('minDuration').textContent = data.minDuration;
+      document.getElementById('maxDuration').textContent = data.maxDuration;
+      document.getElementById('p50Duration').textContent = data.p50;
+      document.getElementById('p95Duration').textContent = data.p95;
+      document.getElementById('p99Duration').textContent = data.p99;
+      document.getElementById('testId').textContent = data.testId;
+      document.getElementById('timestamp').textContent = new Date(data.timestamp).toLocaleString();
+      document.getElementById('resultVus').textContent = data.config.vus;
+
+      // Display status codes
+      const statusCodesDiv = document.getElementById('statusCodes');
+      statusCodesDiv.innerHTML = '';
+      
+      Object.entries(data.statusCodes).forEach(([code, count]) => {
+        const statusClass = code.startsWith('2') ? 'status-2xx' : 
+                           code.startsWith('4') ? 'status-4xx' : 
+                           code.startsWith('5') ? 'status-5xx' : '';
+        const badge = document.createElement('span');
+        badge.className = `status-badge ${statusClass}`;
+        badge.textContent = `${code}: ${count} requests`;
+        badge.title = getHttpStatusInfo(code);
+        statusCodesDiv.appendChild(badge);
+      });
+
+      // Setup download button
+      document.getElementById('downloadBtn').onclick = () => {
+        window.open(`${API_URL}/download/${data.testId}`, '_blank');
+      };
+
+      // Setup new test button
+      document.getElementById('newTestBtn').onclick = () => {
+        document.getElementById('resultsSection').style.display = 'none';
+        document.getElementById('configSection').style.display = 'block';
+      };
+    }
+
+    // Parse cURL command
+    function parseCurl() {
+      const curlInput = document.getElementById('curlInput').value.trim();
+      
+      if (!curlInput) {
+        alert('Please paste a cURL command first');
+        return;
+      }
+
+      try {
+        // Remove line continuation characters and normalize whitespace
+        let normalizedCurl = curlInput
+          .replace(/\\\s*\n\s*/g, ' ')  // Remove backslash line continuations
+          .replace(/\s+/g, ' ')          // Normalize multiple spaces
+          .trim();
+
+        // Extract URL - handle both quoted and unquoted URLs
+        let url = '';
+        // Try different URL patterns
+        const urlPatterns = [
+          /curl\s+(?:--location\s+)?['"]([^'"]+)['"]/,  // quoted URL
+          /curl\s+(?:--location\s+)?([^\s-][^\s]*)/,     // unquoted URL
+        ];
+        
+        for (const pattern of urlPatterns) {
+          const match = normalizedCurl.match(pattern);
+          if (match) {
+            url = match[1];
+            break;
+          }
+        }
+
+        if (!url) {
+          throw new Error('Could not extract URL from cURL command');
+        }
+
+        // Extract HTTP Method
+        let method = 'GET';
+        const methodMatch = normalizedCurl.match(/(?:-X|--request)\s+['"]?(\w+)['"]?/i);
+        if (methodMatch) {
+          method = methodMatch[1].toUpperCase();
+        } else if (normalizedCurl.includes('-d') || normalizedCurl.includes('--data')) {
+          method = 'POST';
+        }
+
+        // Extract Headers - handle both -H and --header formats
+        const headers = {};
+        
+        // Pattern for -H 'header: value'
+        const headerRegex1 = /-H\s+['"]([^'"]+)['"]/g;
+        let headerMatch;
+        while ((headerMatch = headerRegex1.exec(normalizedCurl)) !== null) {
+          const headerLine = headerMatch[1];
+          const colonIndex = headerLine.indexOf(':');
+          if (colonIndex > 0) {
+            const key = headerLine.substring(0, colonIndex).trim();
+            const value = headerLine.substring(colonIndex + 1).trim();
+            headers[key] = value;
+          }
+        }
+
+        // Pattern for --header 'header: value'
+        const headerRegex2 = /--header\s+['"]([^'"]+)['"]/g;
+        while ((headerMatch = headerRegex2.exec(normalizedCurl)) !== null) {
+          const headerLine = headerMatch[1];
+          const colonIndex = headerLine.indexOf(':');
+          if (colonIndex > 0) {
+            const key = headerLine.substring(0, colonIndex).trim();
+            const value = headerLine.substring(colonIndex + 1).trim();
+            headers[key] = value;
+          }
+        }
+
+        // Extract Body - handle multiline JSON
+        let body = '';
+        const dataPatterns = [
+          /(?:-d|--data|--data-raw)\s+['"]({[\s\S]*?})['"]/,  // JSON in quotes
+          /(?:-d|--data|--data-raw)\s+'([^']+)'/,              // Single quoted
+          /(?:-d|--data|--data-raw)\s+"([^"]+)"/,              // Double quoted
+        ];
+
+        for (const pattern of dataPatterns) {
+          const match = normalizedCurl.match(pattern);
+          if (match) {
+            body = match[1];
+            // Try to parse and prettify JSON
+            try {
+              const parsed = JSON.parse(body);
+              body = JSON.stringify(parsed, null, 2);
+            } catch (e) {
+              // Keep as is if not valid JSON
+            }
+            break;
+          }
+        }
+
+        // Populate form
+        if (url) document.getElementById('url').value = url;
+        if (method) document.getElementById('method').value = method;
+        
+        if (Object.keys(headers).length > 0) {
+          document.getElementById('headers').value = JSON.stringify(headers, null, 2);
+        }
+        
+        if (body && ['POST', 'PUT', 'PATCH'].includes(method)) {
+          document.getElementById('body').value = body;
+          document.getElementById('bodySection').style.display = 'block';
+        }
+
+        // Auto-generate test name
+        if(document.getElementById('testName')) {
+          try {
+            const urlObj = new URL(url);
+            document.getElementById('testName').value = `${method} ${urlObj.href}`;
+          } catch (e) {
+            document.getElementById('testName').value = `${method} Test`;
+          }
+        }
+
+        // Collapse the cURL section
+        const curlSection = new bootstrap.Collapse(document.getElementById('curlSection'), {
+          toggle: true
+        });
+
+        // Clear the cURL input
+        document.getElementById('curlInput').value = '';
+
+        // Show success message
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success alert-dismissible fade show mt-2';
+        alert.innerHTML = `
+          <i class="bi bi-check-circle"></i> cURL parsed successfully! Review the form below.
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.getElementById('curlSection').parentElement.appendChild(alert);
+        
+        setTimeout(() => alert.remove(), 3000);
+
+      } catch (error) {
+        alert('Error parsing cURL: ' + error.message + '\n\nPlease check your cURL command format.');
+        console.error('Parse error:', error);
+      }
+    }
+
+    function resetTestForm() {
+      document.getElementById("testForm").reset();
+    }
+
+    async function loadErrorCodes() {
+      try {
+        const responseErrorCoded = await fetch(`${API_URL}/errorcodes`, {});
+        httpStatusCodes = await responseErrorCoded.json();
+      } catch (error) {
+        console.log("Error retriving Error Codes", error);
+      }
+    }
+
+    function getHttpStatusInfo(code) {
+      const category = `${Math.floor(code / 100)}xx`;
+      const codeStr = code.toString();
+      
+      var temp = { phrase: "Unknown", description: "Unknown or unsupported HTTP status code." };
+      if (httpStatusCodes[category] && httpStatusCodes[category][codeStr]) {
+        temp = httpStatusCodes[category][codeStr];
+      }
+      return `${temp.phrase} - ${temp.description}`;
+    }
+  </script>
+</body>
+</html>

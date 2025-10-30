@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Load Testing - Mode</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .main-container {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      padding: 50px 40px;
+      max-width: 900px;
+      width: 100%;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+    .header h1 {
+      color: #667eea;
+      font-weight: bold;
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+    .header p {
+      color: #6c757d;
+      font-size: 1.1rem;
+    }
+    .test-type-card {
+      border: 3px solid #e0e0e0;
+      border-radius: 15px;
+      padding: 40px 30px;
+      text-align: center;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      height: 100%;
+      background: white;
+      position: relative;
+      overflow: hidden;
+    }
+    .test-type-card.history-type-card {
+      padding: 17px 0px 2px 10px;
+    }
+    .test-type-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      transform: scaleX(0);
+      transition: transform 0.3s ease;
+    }
+    .test-type-card:hover {
+      border-color: #667eea;
+      transform: translateY(-10px);
+      box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);
+    }
+    .test-type-card:hover::before {
+      transform: scaleX(1);
+    }
+    .test-type-card:hover .icon-wrapper {
+      transform: scale(1.1);
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .test-type-card:hover .icon-wrapper i {
+      color: white;
+    }
+    .icon-wrapper {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: #f0f0ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 25px;
+      transition: all 0.3s ease;
+    }
+    .icon-wrapper i {
+      font-size: 3rem;
+      color: #667eea;
+      transition: color 0.3s ease;
+    }
+    .test-type-card h3 {
+      color: #333;
+      font-weight: bold;
+      margin-bottom: 15px;
+      font-size: 1.5rem;
+    }
+    .test-type-card p {
+      color: #6c757d;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+    .feature-list {
+      text-align: left;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+    }
+    .feature-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+      color: #555;
+    }
+    .feature-item i {
+      color: #667eea;
+      margin-right: 10px;
+      font-size: 1.1rem;
+    }
+    .badge-popular {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <div class="main-container">
+    <div class="header">
+      <h1><i class="bi bi-speedometer2"></i> K6 Load Testing</h1>
+      <p>Choose your test type to get started</p>
+    </div>
+
+    <div class="row g-4">
+      <!-- Single Test Card -->
+      <div class="col-md-6">
+        <div class="test-type-card" onclick="selectTestType('single')">
+          <div class="icon-wrapper">
+            <i class="bi bi-play-circle"></i>
+          </div>
+          <h3>Single Test</h3>
+          <p>Run one load test at a time with immediate feedback and detailed real-time monitoring</p>
+          
+          <div class="feature-list">
+            <div class="feature-item">
+              <i class="bi bi-check-circle-fill"></i>
+              <span>Simple and focused interface</span>
+            </div>
+            <div class="feature-item">
+              <i class="bi bi-check-circle-fill"></i>
+              <span>Real-time test progress</span>
+            </div>
+            <div class="feature-item">
+              <i class="bi bi-check-circle-fill"></i>
+              <span>Instant result display</span>
+            </div>
+            <div class="feature-item">
+              <i class="bi bi-check-circle-fill"></i>
+              <span>Perfect for quick checks</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Multiple Tests Card -->
+      <div class="col-md-6">
+        <div class="test-type-card" onclick="selectTestType('multiple')">
+          <span class="badge-popular">Popular</span>
+          <div class="icon-wrapper">
+            <i class="bi bi-collection"></i>
+          </div>
+          <h3>Multiple Tests</h3>
+          <p>Run multiple load tests concurrently and manage all your tests from one dashboard</p>
+          
+          <div class="feature-list">
+            <div class="feature-item">
+              <i class="bi bi-check-circle-fill"></i>
+              <span>Run tests in parallel</span>
+            </div>
+            <div class="feature-item">
+              <i class="bi bi-check-circle-fill"></i>
+              <span>Test queue management</span>
+            </div>
+            <div class="feature-item">
+              <i class="bi bi-check-circle-fill"></i>
+              <span>Compare multiple results</span>
+            </div>
+            <div class="feature-item">
+              <i class="bi bi-check-circle-fill"></i>
+              <span>Ideal for testing suites</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-12">
+        <div class="test-type-card history-type-card" onclick="selectTestType('history')">
+          <h3>View History</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function selectTestType(type) {
+      // Add a subtle animation before navigation
+      const card = event.currentTarget;
+      card.style.transform = 'scale(0.95)';
+      
+      setTimeout(() => {
+        if (type === 'single') {
+          // Navigate to single test page
+          window.location.href = 'single.html';
+        } else if (type === 'multiple') {
+          // Navigate to multiple tests page
+          window.location.href = 'multiple.html';
+        } else if (type === 'history') {
+          // Navigate to multiple tests page
+          window.location.href = 'history.html';
+        }
+      }, 200);
+    }
+  </script>
+</body>
+</html>

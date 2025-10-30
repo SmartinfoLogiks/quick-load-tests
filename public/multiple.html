@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Load Testing Tool</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px 0;
+    }
+    .main-container {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      padding: 30px;
+      margin: 20px auto;
+      max-width: 1400px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 3px solid #667eea;
+    }
+    .header h1 {
+      color: #667eea;
+      font-weight: bold;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    .result-card {
+      background: #f8f9fa;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+    }
+    .metric-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #667eea;
+    }
+    .test-card {
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 15px;
+      transition: all 0.3s;
+    }
+    .test-card:hover {
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    .test-card.running {
+      border-color: #ffc107;
+      background: #fff9e6;
+    }
+    .test-card.completed {
+      border-color: #28a745;
+      background: #f0f9f4;
+    }
+    .test-card.failed {
+      border-color: #dc3545;
+      background: #fef0f0;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin: 2px;
+      cursor: pointer;
+    }
+    .badge-running {
+      background: #ffc107;
+      color: #000;
+    }
+    .badge-completed {
+      background: #28a745;
+      color: #fff;
+    }
+    .badge-failed {
+      background: #dc3545;
+      color: #fff;
+    }
+    .badge-pending {
+      background: #6c757d;
+      color: #fff;
+    }
+    .status-2xx { background: #d4edda; color: #155724; }
+    .status-4xx { background: #fff3cd; color: #856404; }
+    .status-5xx { background: #f8d7da; color: #721c24; }
+    .config-form-container {
+      position: sticky;
+      top: 20px;
+    }
+    .test-list-container {
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+    }
+    .spinner-sm {
+      width: 20px;
+      height: 20px;
+      border-width: 2px;
+    }
+    .collapse-btn {
+      cursor: pointer;
+      user-select: none;
+    }
+    .test-summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .quick-stats {
+      display: flex;
+      gap: 15px;
+      font-size: 0.9rem;
+    }
+    .quick-stat {
+      text-align: center;
+    }
+    .quick-stat-value {
+      font-weight: bold;
+      font-size: 1.1rem;
+      color: #667eea;
+    }
+    .form-label {
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="main-container">
+      <div class="header">
+        <h1><i class="bi bi-speedometer2"></i> Load Testing Tool</h1>
+        <p class="text-muted">Run multiple concurrent load tests for websites and REST APIs</p>
+      </div>
+
+      <div class="row">
+        <!-- Left Column: Test Configuration -->
+        <div class="col-lg-5">
+          <div class="config-form-container">
+            <h3 class="mb-3"><i class="bi bi-gear"></i> 
+              Configure New Test
+              
+              <div class="btn-group" role="group" aria-label="Controls"  style='float:right;margin-top:5px;'>
+                <button id='btn-resetTestForm' type="button" class="btn btn-outline-primary btn-sm">
+                  <i class="bi bi-arrow-clockwise"></i>
+                </button>
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#curlSection">
+                <i class="bi bi-code-slash"></i> cURL
+                </button>
+              </div>
+            </h3>
+
+            <!-- cURL Import Section -->
+            <div class="mb-4">
+              <div class="collapse mt-3" id="curlSection">
+                <div class="card card-body" style="padding: 5px;">
+                  <label class="form-label">Paste cURL Command</label>
+                  <textarea class="form-control" id="curlInput" rows="4" placeholder="curl -X POST https://api.example.com/endpoint -H 'Content-Type: application/json' -d '{\"key\":\"value\"}'"></textarea>
+                  <button type="button" class="btn btn-primary btn-sm mt-2" onclick="parseCurl()">
+                    <i class="bi bi-arrow-down-circle"></i> Parse & Fill Form
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <form id="testForm">
+              <div class="mb-3">
+                <label class="form-label">Test Name (Optional)</label>
+                <input type="text" class="form-control" id="testName" placeholder="My API Test">
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Target URL *</label>
+                <input type="url" class="form-control" id="url" placeholder="https://api.example.com/endpoint" required>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-6">
+                  <label class="form-label">Method *</label>
+                  <select class="form-select" id="method" required>
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                    <option value="PATCH">PATCH</option>
+                  </select>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Virtual Users (VUs) *</label>
+                  <input type="number" class="form-control" id="vus" value="10" min="1" max="1000" required>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Duration *</label>
+                <input type="text" class="form-control" id="duration" value="30s" placeholder="30s, 5m, 1h" required>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Headers (JSON)</label>
+                <textarea class="form-control" id="headers" rows="2" placeholder='{"Authorization": "Bearer token"}'></textarea>
+              </div>
+
+              <div class="mb-3" id="bodySection" style="display: none;">
+                <label class="form-label">Request Body (JSON)</label>
+                <textarea class="form-control" id="body" rows="3" placeholder='{"key": "value"}'></textarea>
+              </div>
+
+              <div class="mb-3">
+                <div class="row">
+                  <div class="col-6">
+                    <label class="form-label">P95 (Target Response Time) (ms)</label>
+                    <input type="number" class="form-control" id="p95" value="500">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label">Max Error Rate</label>
+                    <input type="number" class="form-control" id="errorRate" value="0.1" step="0.01" min="0" max="1">
+                  </div>
+                </div>
+              </div>
+
+              <div class="d-grid">
+                <button type="submit" class="btn btn-primary btn-lg">
+                  <i class="bi bi-play-fill"></i> Start Test
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Right Column: Running & Completed Tests -->
+        <div class="col-lg-7">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3><i class="bi bi-list-check"></i> Tests</h3>
+            <div>
+              <span class="badge badge-running me-2" id="runningCount">0 Running</span>
+              <span class="badge badge-completed" id="completedCount">0 Completed</span>
+            </div>
+          </div>
+
+          <div class="test-list-container" id="testList">
+            <div class="text-center text-muted py-5">
+              <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+              <p class="mt-3">No tests yet. Configure and start your first test!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+    const tests = new Map();
+    let pollIntervals = new Map();
+    var httpStatusCodes = {};
+
+    loadErrorCodes();
+
+    document.getElementById("btn-resetTestForm").addEventListener("click", resetTestForm);
+
+    // Show/hide body section based on method
+    document.getElementById('method').addEventListener('change', (e) => {
+      const bodySection = document.getElementById('bodySection');
+      bodySection.style.display = ['POST', 'PUT', 'PATCH'].includes(e.target.value) ? 'block' : 'none';
+    });
+
+    // Handle form submission
+    document.getElementById('testForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const config = {
+        url: document.getElementById('url').value,
+        method: document.getElementById('method').value,
+        vus: parseInt(document.getElementById('vus').value),
+        duration: document.getElementById('duration').value,
+        headers: {},
+        body: null,
+        thresholds: {
+          p95: parseInt(document.getElementById('p95').value),
+          errorRate: parseFloat(document.getElementById('errorRate').value)
+        }
+      };
+
+      const testName = document.getElementById('testName').value.trim() || 
+                       `${config.method} ${new URL(config.url).href}`;
+
+      // Parse headers
+      const headersText = document.getElementById('headers').value.trim();
+      if (headersText) {
+        try {
+          config.headers = JSON.parse(headersText);
+        } catch (err) {
+          alert('Invalid JSON in headers field');
+          return;
+        }
+      }
+
+      // Parse body
+      const bodyText = document.getElementById('body').value.trim();
+      if (bodyText && ['POST', 'PUT', 'PATCH'].includes(config.method)) {
+        try {
+          config.body = JSON.parse(bodyText);
+        } catch (err) {
+          alert('Invalid JSON in body field');
+          return;
+        }
+      }
+
+      try {
+        // Start test
+        const response = await fetch(`${API_URL}/run-test`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(config)
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          // Add test to list
+          addTest({
+            testId: data.testId,
+            name: testName,
+            config: config,
+            status: 'running',
+            startTime: new Date()
+          });
+
+          // Start polling for this test
+          startPolling(data.testId);
+
+          // Clear form optionally (commented out to allow quick re-runs)
+          // document.getElementById('testForm').reset();
+        } else {
+          throw new Error(data.error || 'Failed to start test');
+        }
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    });
+
+    // Add test to the list
+    function addTest(test) {
+      tests.set(test.testId, test);
+      renderTests();
+      updateCounts();
+    }
+
+    // Update test status
+    function updateTest(testId, updates) {
+      const test = tests.get(testId);
+      if (test) {
+        Object.assign(test, updates);
+        renderTests();
+        updateCounts();
+      }
+    }
+
+    // Render all tests
+    function renderTests() {
+      const testList = document.getElementById('testList');
+      
+      if (tests.size === 0) {
+        testList.innerHTML = `
+          <div class="text-center text-muted py-5">
+            <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+            <p class="mt-3">No tests yet. Configure and start your first test!</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Sort: running first, then by start time (newest first)
+      const sortedTests = Array.from(tests.values()).sort((a, b) => {
+        if (a.status === 'running' && b.status !== 'running') return -1;
+        if (a.status !== 'running' && b.status === 'running') return 1;
+        return b.startTime - a.startTime;
+      });
+
+      testList.innerHTML = sortedTests.map(test => renderTestCard(test)).join('');
+    }
+
+    // Render individual test card
+    function renderTestCard(test) {
+      const statusClass = test.status === 'running' ? 'running' : 
+                         test.status === 'completed' ? 'completed' : 'failed';
+      const badgeClass = test.status === 'running' ? 'badge-running' : 
+                        test.status === 'completed' ? 'badge-completed' : 'badge-failed';
+      
+      const isExpanded = test.expanded || false;
+      const detailsDisplay = isExpanded ? 'block' : 'none';
+      const iconClass = isExpanded ? 'bi-chevron-up' : 'bi-chevron-down';
+
+      let detailsHtml = '';
+      
+      if (test.status === 'running') {
+        detailsHtml = `
+          <div class="text-center py-3">
+            <div class="spinner-border text-warning" role="status">
+              <span class="visually-hidden">Running...</span>
+            </div>
+            <p class="mt-2 text-muted">Test in progress...</p>
+          </div>
+        `;
+      } else if (test.status === 'completed' && test.results) {
+        const r = test.results;
+        detailsHtml = `
+          <div class="quick-stats mb-3">
+            <div class="quick-stat">
+              <div class="quick-stat-value">${r.totalRequests}</div>
+              <small class="text-muted">Requests</small>
+            </div>
+            <div class="quick-stat">
+              <div class="quick-stat-value">${r.avgDuration}</div>
+              <small class="text-muted">Avg (ms)</small>
+            </div>
+            <div class="quick-stat">
+              <div class="quick-stat-value">${r.p95}</div>
+              <small class="text-muted">P95 (ms)</small>
+            </div>
+            <div class="quick-stat">
+              <div class="quick-stat-value">${r.p99}</div>
+              <small class="text-muted">P99 (ms)</small>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <strong>Status Codes:</strong><br>
+            ${Object.entries(r.statusCodes).map(([code, count]) => {
+              const statusClass = code.startsWith('2') ? 'status-2xx' : 
+                                 code.startsWith('4') ? 'status-4xx' : 
+                                 code.startsWith('5') ? 'status-5xx' : '';
+              return `<span class="status-badge ${statusClass}" title="${getHttpStatusInfo(code)}">${code}: ${count}</span>`;
+            }).join(' ')}
+          </div>
+          
+          <div class="mb-3">
+            <strong>Response Times:</strong>
+            <table class="table table-sm">
+              <tr><td>Min</td><td>${r.minDuration} ms</td><td>P50</td><td>${r.p50} ms</td></tr>
+              <tr><td>Max</td><td>${r.maxDuration} ms</td><td>P95</td><td>${r.p95} ms</td></tr>
+            </table>
+          </div>
+          
+          <button class="btn btn-success btn-sm" onclick="downloadReport('${test.testId}')">
+            <i class="bi bi-download"></i> Download Report
+          </button>
+        `;
+      } else if (test.status === 'failed') {
+        detailsHtml = `
+          <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle"></i> Test failed or timed out
+          </div>
+        `;
+      }
+
+      return `
+        <div class="test-card ${statusClass}">
+          <div class="test-summary" onclick="toggleTest('${test.testId}')">
+            <div>
+              <h6 class="mb-1">
+                <i class="bi ${test.status === 'running' ? 'bi-hourglass-split' : test.status === 'completed' ? 'bi-check-circle' : 'bi-x-circle'}"></i>
+                ${test.name}
+              </h6>
+              <small class="text-muted">
+                ${test.config.method} • ${test.config.vus} VUs • ${test.config.duration}
+                ${test.status === 'completed' ? ` • Completed ${formatTime(test.endTime)}` : ''}
+              </small>
+            </div>
+            <div>
+              <span class="status-badge ${badgeClass}">${test.status.toUpperCase()}</span>
+              <i class="bi ${iconClass} ms-2"></i>
+            </div>
+          </div>
+          
+          <div style="display: ${detailsDisplay};" class="mt-3">
+            <hr>
+            ${detailsHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    // Toggle test details
+    function toggleTest(testId) {
+      const test = tests.get(testId);
+      if (test) {
+        test.expanded = !test.expanded;
+        renderTests();
+      }
+    }
+
+    // Start polling for test results
+    function startPolling(testId) {
+      const interval = setInterval(async () => {
+        try {
+          const response = await fetch(`${API_URL}/result/${testId}`);
+          const data = await response.json();
+
+          if (response.ok && data.totalRequests) {
+            // Test completed successfully
+            clearInterval(interval);
+            pollIntervals.delete(testId);
+            updateTest(testId, {
+              status: 'completed',
+              results: data,
+              endTime: new Date()
+            });
+          }
+        } catch (error) {
+          // Continue polling on error
+        }
+      }, 2000);
+
+      pollIntervals.set(testId, interval);
+
+      // Timeout after 5 minutes
+      setTimeout(() => {
+        if (pollIntervals.has(testId)) {
+          clearInterval(interval);
+          pollIntervals.delete(testId);
+          updateTest(testId, { status: 'failed' });
+        }
+      }, 300000);
+    }
+
+    // Update counts
+    function updateCounts() {
+      const running = Array.from(tests.values()).filter(t => t.status === 'running').length;
+      const completed = Array.from(tests.values()).filter(t => t.status === 'completed').length;
+      
+      document.getElementById('runningCount').textContent = `${running} Running`;
+      document.getElementById('completedCount').textContent = `${completed} Completed`;
+    }
+
+    // Download report
+    function downloadReport(testId) {
+      window.open(`${API_URL}/download/${testId}`, '_blank');
+    }
+
+    // Format time
+    function formatTime(date) {
+      if (!date) return '';
+      const now = new Date();
+      const diff = Math.floor((now - date) / 1000);
+      
+      if (diff < 60) return 'just now';
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+      return date.toLocaleDateString();
+    }
+
+    // Parse cURL command
+    function parseCurl() {
+      const curlInput = document.getElementById('curlInput').value.trim();
+      
+      if (!curlInput) {
+        alert('Please paste a cURL command first');
+        return;
+      }
+
+      try {
+        // Remove line continuation characters and normalize whitespace
+        let normalizedCurl = curlInput
+          .replace(/\\\s*\n\s*/g, ' ')  // Remove backslash line continuations
+          .replace(/\s+/g, ' ')          // Normalize multiple spaces
+          .trim();
+
+        // Extract URL - handle both quoted and unquoted URLs
+        let url = '';
+        // Try different URL patterns
+        const urlPatterns = [
+          /curl\s+(?:--location\s+)?['"]([^'"]+)['"]/,  // quoted URL
+          /curl\s+(?:--location\s+)?([^\s-][^\s]*)/,     // unquoted URL
+        ];
+        
+        for (const pattern of urlPatterns) {
+          const match = normalizedCurl.match(pattern);
+          if (match) {
+            url = match[1];
+            break;
+          }
+        }
+
+        if (!url) {
+          throw new Error('Could not extract URL from cURL command');
+        }
+
+        // Extract HTTP Method
+        let method = 'GET';
+        const methodMatch = normalizedCurl.match(/(?:-X|--request)\s+['"]?(\w+)['"]?/i);
+        if (methodMatch) {
+          method = methodMatch[1].toUpperCase();
+        } else if (normalizedCurl.includes('-d') || normalizedCurl.includes('--data')) {
+          method = 'POST';
+        }
+
+        // Extract Headers - handle both -H and --header formats
+        const headers = {};
+        
+        // Pattern for -H 'header: value'
+        const headerRegex1 = /-H\s+['"]([^'"]+)['"]/g;
+        let headerMatch;
+        while ((headerMatch = headerRegex1.exec(normalizedCurl)) !== null) {
+          const headerLine = headerMatch[1];
+          const colonIndex = headerLine.indexOf(':');
+          if (colonIndex > 0) {
+            const key = headerLine.substring(0, colonIndex).trim();
+            const value = headerLine.substring(colonIndex + 1).trim();
+            headers[key] = value;
+          }
+        }
+
+        // Pattern for --header 'header: value'
+        const headerRegex2 = /--header\s+['"]([^'"]+)['"]/g;
+        while ((headerMatch = headerRegex2.exec(normalizedCurl)) !== null) {
+          const headerLine = headerMatch[1];
+          const colonIndex = headerLine.indexOf(':');
+          if (colonIndex > 0) {
+            const key = headerLine.substring(0, colonIndex).trim();
+            const value = headerLine.substring(colonIndex + 1).trim();
+            headers[key] = value;
+          }
+        }
+
+        // Extract Body - handle multiline JSON
+        let body = '';
+        const dataPatterns = [
+          /(?:-d|--data|--data-raw)\s+['"]({[\s\S]*?})['"]/,  // JSON in quotes
+          /(?:-d|--data|--data-raw)\s+'([^']+)'/,              // Single quoted
+          /(?:-d|--data|--data-raw)\s+"([^"]+)"/,              // Double quoted
+        ];
+
+        for (const pattern of dataPatterns) {
+          const match = normalizedCurl.match(pattern);
+          if (match) {
+            body = match[1];
+            // Try to parse and prettify JSON
+            try {
+              const parsed = JSON.parse(body);
+              body = JSON.stringify(parsed, null, 2);
+            } catch (e) {
+              // Keep as is if not valid JSON
+            }
+            break;
+          }
+        }
+
+        // Populate form
+        if (url) document.getElementById('url').value = url;
+        if (method) document.getElementById('method').value = method;
+        
+        if (Object.keys(headers).length > 0) {
+          document.getElementById('headers').value = JSON.stringify(headers, null, 2);
+        }
+        
+        if (body && ['POST', 'PUT', 'PATCH'].includes(method)) {
+          document.getElementById('body').value = body;
+          document.getElementById('bodySection').style.display = 'block';
+        }
+
+        // Auto-generate test name
+        if(document.getElementById('testName')) {
+          try {
+            const urlObj = new URL(url);
+            document.getElementById('testName').value = `${method} ${urlObj.href}`;
+          } catch (e) {
+            document.getElementById('testName').value = `${method} Test`;
+          }
+        }
+
+        // Collapse the cURL section
+        const curlSection = new bootstrap.Collapse(document.getElementById('curlSection'), {
+          toggle: true
+        });
+
+        // Clear the cURL input
+        document.getElementById('curlInput').value = '';
+
+        // Show success message
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success alert-dismissible fade show mt-2';
+        alert.innerHTML = `
+          <i class="bi bi-check-circle"></i> cURL parsed successfully! Review the form below.
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.getElementById('curlSection').parentElement.appendChild(alert);
+        
+        setTimeout(() => alert.remove(), 3000);
+
+      } catch (error) {
+        alert('Error parsing cURL: ' + error.message + '\n\nPlease check your cURL command format.');
+        console.error('Parse error:', error);
+      }
+    }
+
+    function resetTestForm() {
+      document.getElementById("testForm").reset();
+    }
+
+    async function loadErrorCodes() {
+      try {
+        const responseErrorCoded = await fetch(`${API_URL}/errorcodes`, {});
+        httpStatusCodes = await responseErrorCoded.json();
+      } catch (error) {
+        console.log("Error retriving Error Codes", error);
+      }
+    }
+
+    function getHttpStatusInfo(code) {
+      const category = `${Math.floor(code / 100)}xx`;
+      const codeStr = code.toString();
+      
+      var temp = { phrase: "Unknown", description: "Unknown or unsupported HTTP status code." };
+      if (httpStatusCodes[category] && httpStatusCodes[category][codeStr]) {
+        temp = httpStatusCodes[category][codeStr];
+      }
+      return `${temp.phrase} - ${temp.description}`;
+    }
+
+    // Make functions global for onclick handlers
+    window.toggleTest = toggleTest;
+    window.downloadReport = downloadReport;
+    window.parseCurl = parseCurl;
+  </script>
+</body>
+</html>
