@@ -338,7 +338,33 @@ app.get('/api/download/:testId', async (req, res) => {
 <head>
   <title>Load Test Report - ${testId}</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 40px; }
+    body {
+      font-family: sans-serif; margin: 20px; 
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 20px;
+    }
+    .logobg {
+      background: #333;
+      border-radius: 16px;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      background-image: url(https://www.smartinfologiks.com/apps/silk/media/logos/logo-new.png);
+      background-position: center center;
+      background-repeat: no-repeat;
+      position: fixed;
+      right: 20px;
+      top: 20px;
+      z-index: 99999999;
+      width: 350px;
+      height: 82px;
+    }
     h1 { color: #333; }
     table { border-collapse: collapse; width: 100%; margin: 20px 0; }
     th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
@@ -348,6 +374,7 @@ app.get('/api/download/:testId', async (req, res) => {
   </style>
 </head>
 <body>
+  <div class="logobg"></div>
   <h1>Load Test Report</h1>
   <p><strong>Test ID:</strong> ${testId}</p>
   <p><strong>Timestamp:</strong> ${summary.timestamp}</p>
